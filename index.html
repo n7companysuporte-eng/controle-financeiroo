@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Controle Financeiro Inteligente</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Arial, sans-serif; background:#f4f6f5; margin:0; }
+header { background:#1e7f43; color:#fff; padding:20px; text-align:center; font-size:22px; font-weight:bold; }
+.container { max-width:1100px; margin:auto; padding:20px; }
+.section { background:white; padding:20px; border-radius:12px; margin-bottom:20px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+h2 { color:#1e7f43; }
+input, select, button {
+  width:100%; padding:10px; margin:8px 0 12px;
+  border-radius:8px; border:1px solid #ccc;
+}
+button { background:#2ecc71; font-weight:bold; cursor:pointer; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:15px; }
+.card { padding:20px; border-radius:12px; font-weight:bold; }
+.green { background:#2ecc71; }
+.yellow { background:#f1c40f; }
+.semaforo { padding:20px; border-radius:12px; text-align:center; font-size:18px; font-weight:bold; }
+.semaforo.green{background:#2ecc71;}
+.semaforo.yellow{background:#f1c40f;}
+.semaforo.red{background:#e74c3c;color:white;}
+.alerta{padding:12px;border-radius:10px;font-weight:bold;text-align:center;margin-top:10px;}
+.ok{background:#d4efdf;}
+.warn{background:#fcf3cf;}
+.danger{background:#f5b7b1;}
+.lista li{display:flex;justify-content:space-between;align-items:center;margin:6px 0;}
+.lista button{background:#e74c3c;color:white;border:none;padding:5px 10px;border-radius:6px;}
+.mensagem{font-weight:bold;text-align:center;margin-top:10px;}
+</style>
+</head>
+
+<body>
+
+<header>Controle Financeiro Inteligente</header>
+
+<div class="container">
+
+<!-- RENDA -->
+<div class="section">
+<h2>Adicionar Renda</h2>
+<input type="number" id="valorRenda" placeholder="Valor">
+<input type="date" id="dataRenda">
+<select id="categoriaRenda">
+<option>Salário</option>
+<option>Extra</option>
+<option>Comissão</option>
+<option>Investimentos</option>
+<option>Outros</option>
+</select>
+<button onclick="addRenda()">Adicionar Renda</button>
+<div id="msgRenda" class="mensagem"></div>
+<ul id="listaRendas" class="lista"></ul>
+</div>
+
+<!-- GASTO -->
+<div class="section">
+<h2>Adicionar Gasto</h2>
+<input type="number" id="valorGasto" placeholder="Valor">
+<input type="date" id="dataGasto">
+<select id="categoriaGasto">
+<option>Moradia</option>
+<option>Alimentação</option>
+<option>Transporte</option>
+<option>Saúde</option>
+<option>Educação</option>
+<option>Contas Fixas</option>
+<option>🍔 Lazer</option>
+<option>Compras por impulso</option>
+<option>Outros</option>
+</select>
+<button onclick="addGasto()">Adicionar Gasto</button>
+<div id="msgGasto" class="mensagem"></div>
+<ul id="listaGastos" class="lista"></ul>
+</div>
+
+<!-- DASHBOARD -->
+<div class="section">
+<div class="cards">
+<div class="card green">Receita<br>R$ <span id="receita">0</span></div>
+<div class="card yellow">Gastos<br>R$ <span id="gastos">0</span></div>
+</div>
+<div id="semaforo" class="semaforo"></div>
+<div id="alerta" class="alerta"></div>
+<canvas id="grafico"></canvas>
+</div>
+
+</div>
+
+<script>
+let rendas = JSON.parse(localStorage.getItem("rendas")) || [];
+let gastos = JSON.parse(localStorage.getItem("gastos")) || [];
+let chart;
+
+const msgsRenda = [
+"💰 Boa! Dinheiro entrando é música!",
+"👏 Parabéns, o caixa sorriu!",
+"🚀 Receita registrada!"
+];
+
+const msgsGasto = [
+"😅 O cartão sentiu essa…",
+"💸 Foi necessário… ou emoção?",
+"👀 Anotado! O dinheiro saiu andando"
+];
+
+function addRenda(){
+const v=Number(valorRenda.value); if(!v)return;
+rendas.push({v, d:dataRenda.value});
+localStorage.setItem("rendas",JSON.stringify(rendas));
+msgRenda.innerText=msgsRenda[Math.floor(Math.random()*msgsRenda.length)];
+valorRenda.value="";
+atualizar();
+}
+
+function addGasto(){
+const v=Number(valorGasto.value); if(!v)return;
+gastos.push({v, d:dataGasto.value});
+localStorage.setItem("gastos",JSON.stringify(gastos));
+msgGasto.innerText=msgsGasto[Math.floor(Math.random()*msgsGasto.length)];
+valorGasto.value="";
+atualizar();
+}
+
+function remover(tipo,i){
+if(tipo==="r")rendas.splice(i,1);
+else gastos.splice(i,1);
+localStorage.setItem("rendas",JSON.stringify(rendas));
+localStorage.setItem("gastos",JSON.stringify(gastos));
+atualizar();
+}
+
+function atualizar(){
+listaRendas.innerHTML="";
+listaGastos.innerHTML="";
+rendas.forEach((r,i)=>listaRendas.innerHTML+=`<li>R$ ${r.v} | ${r.d}<button onclick="remover('r',${i})">❌</button></li>`);
+gastos.forEach((g,i)=>listaGastos.innerHTML+=`<li>R$ ${g.v} | ${g.d}<button onclick="remover('g',${i})">❌</button></li>`);
+
+const totalR=rendas.reduce((a,b)=>a+b.v,0);
+const totalG=gastos.reduce((a,b)=>a+b.v,0);
+receita.innerText=totalR.toFixed(2);
+document.getElementById("gastos").innerText=totalG.toFixed(2);
+
+const p=totalR?(totalG/totalR)*100:0;
+if(p<=70){semaforo.className="semaforo green";semaforo.innerText="🟢 Saudável";alerta.className="alerta ok";alerta.innerText="Tudo sob controle";}
+else if(p<=90){semaforo.className="semaforo yellow";semaforo.innerText="🟡 Atenção";alerta.className="alerta warn";alerta.innerText="Cuidado";}
+else{semaforo.className="semaforo red";semaforo.innerText="🔴 Alerta";alerta.className="alerta danger";alerta.innerText="Orçamento estourado";}
+
+if(chart)chart.destroy();
+chart=new Chart(grafico,{type:"doughnut",data:{labels:["Receita","Gastos"],datasets:[{data:[totalR,totalG],backgroundColor:["#2ecc71","#f1c40f"]}]}});
+}
+
+atualizar();
+</script>
+
+</body>
+</html>
